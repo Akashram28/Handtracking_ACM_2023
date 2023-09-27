@@ -1,5 +1,6 @@
 import serial
 import random
+import time
 # Define the serial port and baud rate
 ser = serial.Serial('COM4', 9600)  # Replace 'COMX' with your Arduino's serial port
 
@@ -22,7 +23,10 @@ with mp_hands.Hands(
     model_complexity=0,
     min_detection_confidence=0.5,
     min_tracking_confidence=0.5) as hands:
+  start = time.time()
   while cap.isOpened():
+    if time.time() - start >= 20:
+      break
     success, image = cap.read()
     if not success:
       print("Ignoring empty camera frame.")
@@ -31,6 +35,7 @@ with mp_hands.Hands(
 
     # To improve performance, optionally mark the image as not writeable to
     # pass by reference.
+    
     image.flags.writeable = False
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     results = hands.process(image)
@@ -91,7 +96,7 @@ with mp_hands.Hands(
     
     image = cv2.flip(image, 1)
     cv2.putText(image, str(fingerCount), (50, 450), cv2.FONT_HERSHEY_SIMPLEX, 3, (255, 0, 0), 10)
-    # cv2.putText(image, str(rand_int), (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 3, (255, 0, 0), 10)
+    cv2.putText(image, str(int(time.time()-start)), (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 5)
     cv2.imshow('MediaPipe Hands', image)
     if cv2.waitKey(10) & 0xFF == ord('q'):
       break
@@ -100,6 +105,12 @@ with mp_hands.Hands(
     if fingerCount == rand_int:
         rand_int = random.randint(1,10)
         ser.write(str(rand_int).encode() + b'\n')
-        
-cap.release()
+# while True:
+#     num = int(input("Enter number : "))
+#     # if num == rand_int:
+#     rand_int = random.randint(1,10)
+#     ser.write(str(rand_int).encode() + b'\n')
+#     if num == 0:
+#         break
+# cap.release()
 ser.close()
