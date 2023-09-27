@@ -103,7 +103,10 @@ with mp_hands.Hands(
     
     # Send the number of blinks to Arduino
     if fingerCount == rand_int:
-        rand_int = random.randint(1,10)
+        temp = random.randint(1,10)
+        while temp== rand_int:
+          temp = random.randint(1,10)
+        rand_int = temp
         ser.write(str(rand_int).encode() + b'\n')
 # while True:
 #     num = int(input("Enter number : "))
