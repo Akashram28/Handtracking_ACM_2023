@@ -11,14 +11,42 @@ mp_drawing_styles = mp.solutions.drawing_styles
 mp_hands = mp.solutions.hands
 
 
-# For webcam input:
-# data = ser.readline().decode().strip()
-# print(data,type(data))
+import tkinter as tk
+from tkinter import messagebox
+
+
+def show_popup(n):
+    popup = tk.Tk()
+    popup.attributes("-fullscreen", True)
+    popup.title("Guess Result")
+
+    # Configure the font and background color
+    label = tk.Label(popup, text=f"You Guessed:", font=("Helvetica", 32), foreground="#3498db")
+    label.pack(expand=True, fill="both")
+
+    # Center the label
+    label.place(relx=0.5, rely=0.35, anchor="center")
+
+    result_label = tk.Label(popup, text=f"{n} correctly", font=("Helvetica", 48), foreground="#2ecc71")
+    result_label.pack(expand=True, fill="both")
+
+    # Center the result label
+    result_label.place(relx=0.5, rely=0.55, anchor="center")
+
+    popup.after(5000, popup.destroy)  # Automatically close the popup after 3 seconds
+
+    popup.mainloop()
+
+
 
 
 cap = cv2.VideoCapture(0)
 rand_int = random.randint(1,10)
 ser.write(str(rand_int).encode() + b'\n')
+n = 0
+
+timeStamps = []
+
 with mp_hands.Hands(
     model_complexity=0,
     min_detection_confidence=0.5,
@@ -30,11 +58,8 @@ with mp_hands.Hands(
     success, image = cap.read()
     if not success:
       print("Ignoring empty camera frame.")
-      # If loading a video, use 'break' instead of 'continue'.
       continue
 
-    # To improve performance, optionally mark the image as not writeable to
-    # pass by reference.
     
     image.flags.writeable = False
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -61,17 +86,11 @@ with mp_hands.Hands(
         for landmarks in hand_landmarks.landmark:
           handLandmarks.append([landmarks.x, landmarks.y])
 
-        # Test conditions for each finger: Count is increased if finger is 
-        #   considered raised.
-        # Thumb: TIP x position must be greater or lower than IP x position, 
-        #   deppeding on hand label.
         if handLabel == "Left" and handLandmarks[4][0] > handLandmarks[3][0]:
           fingerCount = fingerCount+1
         elif handLabel == "Right" and handLandmarks[4][0] < handLandmarks[3][0]:
           fingerCount = fingerCount+1
 
-        # Other fingers: TIP y position must be lower than PIP y position, 
-        #   as image origin is in the upper left corner.
         if handLandmarks[8][1] < handLandmarks[6][1]:       #Index finger
           fingerCount = fingerCount+1
         if handLandmarks[12][1] < handLandmarks[10][1]:     #Middle finger
@@ -99,10 +118,16 @@ with mp_hands.Hands(
     cv2.putText(image, str(int(time.time()-start)), (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 5)
     cv2.imshow('MediaPipe Hands', image)
     if cv2.waitKey(10) & 0xFF == ord('q'):
+      
       break
     
     # Send the number of blinks to Arduino
     if fingerCount == rand_int:
+        if n==0:
+          timeStamps.append(time.time()-start)
+        else:
+          timeStamps.append(time.time() - timeStamps[n-1])
+        n+=1
         temp = random.randint(1,10)
         while temp== rand_int:
           temp = random.randint(1,10)
@@ -117,3 +142,7 @@ with mp_hands.Hands(
 #         break
 # cap.release()
 ser.close()
+cv2.destroyAllWindows()
+cap.release()
+show_popup(n)
+print(timeStamps)
